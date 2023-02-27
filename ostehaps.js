@@ -94,7 +94,7 @@ Component.register('sw-category-tree', {
         },
 
         criteria() {
-            return new Criteria(1, 500)
+            return new Criteria(1, 1500)
                 .addAssociation('navigationSalesChannels')
                 .addAssociation('footerSalesChannels')
                 .addAssociation('serviceSalesChannels');
