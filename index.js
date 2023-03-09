@@ -11,9 +11,6 @@ const { warn } = Shopware.Utils.debug;
 const { Criteria } = Shopware.Data;
 const debounceTimeout = 800;
 
-/**
- * @private since v6.5.0
- */
 Component.register('sw-cms-detail', {
     template,
 
@@ -26,7 +23,6 @@ Component.register('sw-cms-detail', {
         'cmsDataResolverService',
         'acl',
         'appCmsService',
-        'systemConfigApiService',
     ],
 
     mixins: [
@@ -108,9 +104,7 @@ Component.register('sw-cms-detail', {
                 },
             ],
             showLayoutAssignmentModal: false,
-            showLayoutSetAsDefaultModal: false,
             showMissingElementModal: false,
-            isDefaultLayout: false,
 
             /** @deprecated tag:v6.5.0 - will be removed without replacement */
             isSaveable: false,
@@ -260,6 +254,10 @@ Component.register('sw-cms-detail', {
             const sortCriteria = Criteria.sort('position', 'ASC', true);
 
             criteria
+                .addAssociation('categories')
+                .addAssociation('landingPages')
+                .addAssociation('products.manufacturer')
+
                 .getAssociation('sections')
                 .addSorting(sortCriteria)
                 .addAssociation('backgroundMedia')
@@ -268,16 +266,6 @@ Component.register('sw-cms-detail', {
                 .addSorting(sortCriteria)
                 .addAssociation('backgroundMedia')
                 .addAssociation('slots');
-
-            criteria
-                .getAssociation('categories')
-                .setLimit(25);
-            criteria
-                .getAssociation('landingPages')
-                .setLimit(25);
-
-            criteria.getAssociation('products').setLimit(25);
-            criteria.getAssociation('products.manufacturer').setLimit(25);
 
             return criteria;
         },
@@ -364,10 +352,6 @@ Component.register('sw-cms-detail', {
                 });
             }
 
-            if (this.acl.can('system_config.read')) {
-                this.getDefaultLayouts();
-            }
-
             this.setPageContext();
         },
 
@@ -402,7 +386,6 @@ Component.register('sw-cms-detail', {
             Shopware.State.commit('cmsPageState/removeSelectedSection');
         },
 
-        /** @deprecated tag:v6.5.0 - will be removed without replacement */
         onBlockNavigatorSort(isCrossSectionMove = false) {
             if (isCrossSectionMove) {
                 this.loadPage(this.pageId);
@@ -1205,38 +1188,6 @@ Component.register('sw-cms-detail', {
         /** @deprecated tag:v6.5.0 method can be removed completely */
         onConfirmLayoutAssignment() {
             this.previousRoute = '';
-        },
-
-        onOpenLayoutSetAsDefault() {
-            this.showLayoutSetAsDefaultModal = true;
-        },
-
-        onCloseLayoutSetAsDefault() {
-            this.showLayoutSetAsDefaultModal = false;
-        },
-
-        async onConfirmLayoutSetAsDefault() {
-            let configKey = 'category_cms_page';
-            if (this.page.type === 'product_detail') {
-                configKey = 'product_cms_page';
-            }
-
-            await this.systemConfigApiService.saveValues({
-                [`core.cms.default_${configKey}`]: this.pageId,
-            });
-
-            this.isDefaultLayout = true;
-            this.showLayoutSetAsDefaultModal = false;
-        },
-
-        async getDefaultLayouts() {
-            const response = await this.systemConfigApiService.getValues('core.cms');
-            const productDetailId = response['core.cms.default_category_cms_page'];
-            const productListId = response['core.cms.default_product_cms_page'];
-
-            if ([productDetailId, productListId].includes(this.pageId)) {
-                this.isDefaultLayout = true;
-            }
         },
 
         onCloseMissingElementModal() {
